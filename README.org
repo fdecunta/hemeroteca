@@ -1,0 +1,19 @@
+#+title: Megatron
+
+Megatron te ayuda a elegir y reproducir muy facil peliculas o series que tengas guardadas en tu compu. Se ejecuta desde la terminal y utiliza una interfaz muy sencilla de ncurses.
+
+El nombre viene de Peep Show. Mas precisamente, de un conjunto de controles remotos que utilizaban para ver la tele.
+
+#+BEGIN_QUOTE
+Jez: ...and We might have to untape the DVD and video and TV and Sky remots.
+
+Mark: The Megatron? But... No...
+
+Jez: It smells wrong.
+#+END_QUOTE
+
+** Requisitos
+
+- 
+- ncurses
+- VLC
