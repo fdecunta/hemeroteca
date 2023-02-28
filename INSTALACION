@@ -1,0 +1,2 @@
+1. Entrar a config.h y modificar "HEMEROTECA_PATH"
+2. Correr "sudo make install"

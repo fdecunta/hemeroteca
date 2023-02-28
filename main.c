@@ -11,8 +11,7 @@
 
 #include "config.h"
 #include "filetree.h"
-#include "historial.h"
-#include "megatron.h"
+#include "hemeroteca.h"
 
 enum prgnstatus {
   CONT = 0,
@@ -33,7 +32,6 @@ TextWin RightWin;
 Node *root_node;		
 Node *lcurrnode;		/* Current node del LeftWin */
 Node *lselnode;			/* Selected node (el que esta bajo el cursor) del LeftWin */
-Node *last_watched;		/* Ultimo video visto */
 
 static void	 build_leftwin(void);
 static void	 build_rightwin(void);
@@ -42,16 +40,13 @@ static void	 build_title(void);
 static WINDOW 	 *build_window(struct win_frame frame);
 static void	 close_node(void);
 static void 	 die(const char *);
-static char 	 *format_lastwatched(char *oldname);
 static void	 goto_bottom(void);
-static void	 goto_last_watched();
 static void	 goto_top(void);
 static void	 init_tui(void);
-static Node 	 *mark_last_watched(void);
 static void 	 mv_curs_down(void);
 static void 	 mv_curs_up(void);
 static void 	 open_node(void);
-static int	 play_video(void);
+static int	 open_pdf(void);
 static void	 print_dir(TextWin WIN, char *buffer, int line);
 static void	 print_highlight(TextWin WIN, char *buffer, int line);
 static void	 print_nodename(TextWin WIN, Node *node);
@@ -65,8 +60,7 @@ static void	 refresh_wins(void);
 static void	 relative_num_move(char first_num);
 static void	 relnum_mv_down(int num);
 static void	 relnum_mv_up(int num);
-static void	 rstrip(char *str);
-static int	 start_megatron_tui(char *dir_to_use);
+static int	 start_hemeroteca_tui(char *dir_to_use);
 static char 	 *truncate_filename(char *oldname, int max_length);
 static void 	 usage(void);
 
@@ -75,16 +69,18 @@ int
 main(int argc, char *argv[])
 {
 
-	int wflag, dflag;
+  	int dflag, sflag;
 	int opt;
 	char *dir_to_use;
 
-	wflag = dflag = 0;
+	dflag = sflag = 0;
 
-	while ((opt = getopt(argc, argv, "wd:h")) != -1) {
+	while ((opt = getopt(argc, argv, "s:d:h")) != -1) {
 		switch (opt) {
-		case 'w':
-			wflag = 1;
+
+			/* IMPLEMENTAR -s search! */
+		case 's':
+			sflag = 1;
 			break;
 		case 'd':
 			dflag = 1;
@@ -108,14 +104,11 @@ main(int argc, char *argv[])
 	if (argc > 0) {
 		usage();
 		exit(1);
-	} else if (wflag == 1) {
-		if ((print_historial()) == -1)
-			die("No se pudo abrir el archivo del historial.\n");
 	} else if (dflag == 0) {
-		dir_to_use = strdup(MEGATRON_PATH);
-		start_megatron_tui(dir_to_use);
+		dir_to_use = strdup(HEMEROTECA_PATH);
+		start_hemeroteca_tui(dir_to_use);
 	} else if (dflag == 1)
-		start_megatron_tui(dir_to_use);
+		start_hemeroteca_tui(dir_to_use);
 
 	return 0;
 }
@@ -123,7 +116,7 @@ main(int argc, char *argv[])
 
 
 int
-start_megatron_tui(char *dir_to_use) {
+start_hemeroteca_tui(char *dir_to_use) {
 
 	int tuistatus, key;
 
@@ -176,14 +169,10 @@ start_megatron_tui(char *dir_to_use) {
 				relative_num_move(key);
 				break;
 
-			case 'L':
-				goto_last_watched();
-				break;
-
 			case 'p':
 			case KEY_ENTER:
 			case 10:
-				if ((play_video()) == -1)
+				if ((open_pdf()) == -1)
 					die("Error en fork: no se pudo abrir VLC\n");
 				break;
 
@@ -333,19 +322,6 @@ truncate_filename(char *oldname, int max_length)
 	return newname;
 }
 
-/* Agrega '(L)' al comienzo del nombre del ultimo video visto */
-static char *
-format_lastwatched(char *oldname)
-{
-	char *tmp_buf;
-	char mark[] = "(L) ";
-	tmp_buf = (char *) calloc ( (NAME_MAX + strlen(mark)) , sizeof(char) );
-	strncpy(tmp_buf, mark, strlen(mark) + 1 );
-	strncat(tmp_buf, oldname, NAME_MAX);
-	tmp_buf[NAME_MAX - 1] = '\0';
-	return tmp_buf;
-}
-
 static void
 print_relative_number(TextWin WIN, int relative_number, int line)
 {
@@ -403,7 +379,6 @@ static void
 print_textwin(TextWin WIN, Node *node)
 {
 	char *buffer;
-	char *lwatched_buf;
 	int i, line, relative_number, rnum_len;
 
 	wclear(WIN.win);
@@ -429,14 +404,7 @@ print_textwin(TextWin WIN, Node *node)
 		else
 			relative_number = abs(line-1 - WIN.curs_pos);
 
-		/* Si es el ultimo video visto, marcarlo con '(L)' */
-		if (node->childs[i].is_last_watched) {
-			lwatched_buf = format_lastwatched(node->childs[i++].name);
-			buffer = truncate_filename(lwatched_buf, (WIN.frame.cols - rnum_len - 1) );
-			free(lwatched_buf);
-		}
-		else
-			buffer = truncate_filename(node->childs[i++].name, (WIN.frame.cols - rnum_len - 1) );
+		buffer = truncate_filename(node->childs[i++].name, (WIN.frame.cols - rnum_len - 1) );
 
 		/* Highlight si esta bajo el cursor */
 		if (WIN.is_active == true && line-1 == WIN.curs_pos) 
@@ -600,90 +568,12 @@ rebuild_all(void)
 	print_text_windows();
 }
 
-/* Quita el caracter newline del final de la linea */
-static void
-rstrip(char *str)
-{
-	char *p;
-	p = strchr(str, '\n');
-	*p = '\0';
-}
-
-/* Marca el nodo del ultimo video visto */
-static Node *
-mark_last_watched(void)
-{
-	/* Checkea si el historial esta vacio */
-	struct stat st;
-	if (stat(HISTORY_FILE, &st) != 0) {
-		return NULL;
-	}
-	if (st.st_size == 0)
-		return NULL;
-
-	char *last_watched_path, *fname;
-	FILE *phistory;
-	size_t len = 0;
-	ssize_t nread;
-	Node *ptr_node;
-
-	last_watched_path = NULL;
-	phistory = fopen(HISTORY_FILE, "r");
-	if (phistory == NULL) {
-		return NULL;
-	}
-  
-	while ((nread = getline(&last_watched_path, &len, phistory)) != -1) {
-		;
-	}
-  
-	rstrip(last_watched_path);
-	fname = basename(last_watched_path);
-	ptr_node = search_node(fname, root_node);
-	/* Chequea que la entrada del historial este en el root_node
-	   Puede no estar si se abre megatron en otro dir */
-	if (ptr_node != NULL)
-		ptr_node->is_last_watched = true;
-
-	free(last_watched_path);
-	fclose(phistory);
-	return ptr_node;
-}
-
-static void
-goto_last_watched()
-{
-	if (last_watched == NULL) 
-		return;
-
-  
-	int i;
-	lcurrnode = last_watched->parent;
-	lselnode = last_watched;
-
-	i = 0;
-	while ((strcmp(lcurrnode->childs[i].name, lselnode->name)) != 0)
-		i++;
-	lcurrnode->index_sel = i;
-
-	if (lcurrnode->index_sel < LeftWin.max_curs_pos)
-		LeftWin.curs_pos = lcurrnode->index_sel;
-	else {
-		LeftWin.curs_pos = LeftWin.max_curs_pos;
-		lcurrnode->ntop_slice = lcurrnode->index_sel - LeftWin.max_curs_pos;
-	}
-
-	print_text_windows();
-	return;
-}
-
 static int
-play_video(void)
+open_pdf(void)
 {
 	if (lselnode->is_dir)
 		return 1;
 
-	int status;
 	pid_t pid;
 	pid = fork();
 
@@ -691,19 +581,10 @@ play_video(void)
 		return -1;
 
 	else if (pid == 0) {
-		char *vlc_args[] = {"vlc", "-q", "-f", lselnode->path, NULL};
-		if (execvp("vlc", vlc_args) == -1) {
-			perror("Error en la función play_video. No se pudo abrir VLC\n");
+		char *mupdf_args[] = {"mupdf", lselnode->path, NULL};
+		if (execvp("mupdf", mupdf_args) == -1) {
+			perror("Error en la función open_pdf. No se pudo abrir MuPDF\n");
 		}
-	}
-	else {
-		waitpid(pid, &status, 0);
-		save_to_historial(lselnode->path);
-		if (last_watched != NULL) 
-			last_watched->is_last_watched = false;
-		lselnode->is_last_watched = true;
-		last_watched = lselnode;
-      
 	}
 	return 0;
 }
@@ -758,8 +639,8 @@ init_tui(void)
 	curs_set(0);
 
 	start_color();
-	init_pair(1, COLOR_RED, COLOR_BLACK);
-	init_pair(2, COLOR_BLACK, COLOR_RED);
+	init_pair(1, COLOR_BLUE, COLOR_BLACK);
+	init_pair(2, COLOR_BLACK, COLOR_BLUE);
 
 	/* Consigo FILAS y COLUMNAs */
 	getmaxyx(stdscr, scr_rows, scr_cols);
@@ -774,8 +655,6 @@ init_tui(void)
   
 	lcurrnode = root_node;
 	lselnode = &root_node->childs[0];
-
-	last_watched = mark_last_watched();
 
 	print_text_windows();
 	return;
@@ -795,5 +674,8 @@ refresh_wins(void)
 static void
 usage(void)
 {
-	fprintf(stderr, "Modo de uso:\n Megatron [-d dir] [-w]\n\n -d\tAbre megatron en [dir]\n -w\tMuestra el historial\n");
+  	fprintf(stderr, "Modo de uso:\n");
+	fprintf(stderr, "Hemeroteca [-d dir] [-s keyword]\n");
+	fprintf(stderr, " -d DIR	Abre hemeroteca en [dir]\n");
+	fprintf(stderr, " -s KEYWORD	Busca archios con KEYWORD en el nombre\n");
 }

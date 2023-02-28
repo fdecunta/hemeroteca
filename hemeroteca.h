@@ -1,5 +1,5 @@
-#ifndef _MEGATRON_H
-#define _MEGATRON_H
+#ifndef _HEMEROTECA_H
+#define _HEMEROTECA_H
 
 #include <stdbool.h>
 
