@@ -13,6 +13,12 @@
 #include "filetree.h"
 #include "hemeroteca.h"
 
+enum ErrorCode {
+	NO_ERROR,
+	ERROR_MUPDF,		/* No se pudo abrir MuPDF */
+	ERROR_OKULAR,		/* No se pudo abrir Okular */
+};
+
 enum prgnstatus {
   CONT = 0,
   EXIT = -1,
@@ -32,6 +38,12 @@ TextWin RightWin;
 Node *root_node;		
 Node *lcurrnode;		/* Current node del LeftWin */
 Node *lselnode;			/* Selected node (el que esta bajo el cursor) del LeftWin */
+Node *search_results_node;	/* Nodo con resultados de la busqueda -s */
+
+char *statusbar_msg;
+char *search_keyword;
+
+int dflag, sflag;
 
 static void	 build_leftwin(void);
 static void	 build_rightwin(void);
@@ -39,14 +51,14 @@ static void	 build_statusbar(void);
 static void	 build_title(void);
 static WINDOW 	 *build_window(struct win_frame frame);
 static void	 close_node(void);
-static void 	 die(const char *);
+static void 	 free_before_die(const char *);
 static void	 goto_bottom(void);
 static void	 goto_top(void);
-static void	 init_tui(void);
+static void	 init_tui(Node *);
 static void 	 mv_curs_down(void);
 static void 	 mv_curs_up(void);
 static void 	 open_node(void);
-static int	 open_pdf(void);
+static int	 open_pdf(char *program);
 static void	 print_dir(TextWin WIN, char *buffer, int line);
 static void	 print_highlight(TextWin WIN, char *buffer, int line);
 static void	 print_nodename(TextWin WIN, Node *node);
@@ -69,23 +81,21 @@ int
 main(int argc, char *argv[])
 {
 
-  	int dflag, sflag;
-	int opt;
+
+	int opt, rval;
 	char *dir_to_use;
 
 	dflag = sflag = 0;
 
 	while ((opt = getopt(argc, argv, "s:d:h")) != -1) {
 		switch (opt) {
-
-			/* IMPLEMENTAR -s search! */
 		case 's':
 			sflag = 1;
+			search_keyword = strdup(optarg);
 			break;
 		case 'd':
 			dflag = 1;
 			dir_to_use = strdup(optarg);
-			/* strncpy(dir_to_use, optarg, PATH_MAX - 1); */
 			break;
 		case '?':
 			/* FALLTHROUGH */
@@ -106,11 +116,11 @@ main(int argc, char *argv[])
 		exit(1);
 	} else if (dflag == 0) {
 		dir_to_use = strdup(HEMEROTECA_PATH);
-		start_hemeroteca_tui(dir_to_use);
+		rval = start_hemeroteca_tui(dir_to_use);
 	} else if (dflag == 1)
-		start_hemeroteca_tui(dir_to_use);
+		rval = start_hemeroteca_tui(dir_to_use);
 
-	return 0;
+	return rval;
 }
 
 
@@ -118,22 +128,34 @@ main(int argc, char *argv[])
 int
 start_hemeroteca_tui(char *dir_to_use) {
 
-	int tuistatus, key;
+	int tuistatus, key, rval;
 
-	if ((root_node = build_root_node(basename(dir_to_use), dir_to_use)) == NULL) 
-		die("Error al crear root_node\n");
+	if ((root_node = build_root_node(basename(dir_to_use), dir_to_use)) == NULL) {
+		free_before_die("Error al crear root_node\n");
+		return -1;
+	}
 
-	if ((build_tree(root_node)) == -1)
-		die("No se pudo crear el arbol de archivos.\n");;
+	if ((build_tree(root_node)) == -1) {
+		free_before_die("No se pudo crear el arbol de archivos.\n");
+		return -1;
+	}
 
-	if (root_node->nchilds == 0) 
-		die("El directorio se encuentra vacio.\n");
+	if (root_node->nchilds == 0) {
+		free_before_die("El directorio se encuentra vacio.\n");
+		return -1;
+	}
 
-	init_tui();
+
+
+	if (sflag == 1) {
+		search_results_node = find_in_tree(search_keyword, root_node);
+		init_tui(search_results_node);
+	} else
+		init_tui(root_node);
+
 	tuistatus = CONT;
 	while (tuistatus == CONT) 
 		{
-			print_statusbar(lselnode->name);
 			refresh_wins();
 
 			key = getch();
@@ -167,13 +189,22 @@ start_hemeroteca_tui(char *dir_to_use) {
 			case '0': case '1': case '2': case '3': case '4': 
 			case '5': case '6': case '7': case '8': case '9':
 				relative_num_move(key);
-				break;
+ 				break;
 
-			case 'p':
+			case 'o':
 			case KEY_ENTER:
 			case 10:
-				if ((open_pdf()) == -1)
-					die("Error en fork: no se pudo abrir VLC\n");
+				if ((open_pdf("mupdf")) == -1) {
+					rval = -1;
+					tuistatus = EXIT;
+				}
+				break;
+
+			case 'O':
+				if ((open_pdf("okular")) == -1) {
+					rval = -1;
+					tuistatus = EXIT;
+				}
 				break;
 
 			case KEY_RESIZE:
@@ -181,6 +212,7 @@ start_hemeroteca_tui(char *dir_to_use) {
 				break;
 	
 			case 'q':
+				rval = 0;
 				tuistatus = EXIT;
 				break;
 
@@ -189,23 +221,25 @@ start_hemeroteca_tui(char *dir_to_use) {
 	
 			}
 		}
+
 	endwin();
 	free_tree(root_node);
 	free(root_node);
 	free(dir_to_use);
-	return 0;
+
+	return rval;
 }
 
 
 
 static void
-die(const char *errstr)
+free_before_die(const char *errstr)
 {
 	if (root_node != NULL)
 		free_tree(root_node);
 
 	fprintf(stderr, errstr);
-	exit(EXIT_FAILURE);
+
 }
 
 
@@ -253,6 +287,9 @@ build_statusbar(void)
 
 	statusbar_win = build_window(frame);
 	wbkgd(statusbar_win, COLOR_PAIR(2));
+
+	statusbar_msg = (char *) calloc ((scr_cols - 2) , sizeof(char));
+
 	return;
 }
 
@@ -260,7 +297,13 @@ static void
 print_statusbar(char *msg)
 {
 	wclear(statusbar_win);
-	mvwaddstr(statusbar_win, 0, 1, msg);
+
+	if (msg == NULL)
+		mvwaddstr(statusbar_win, 0, 1, statusbar_msg);
+	else
+		strncpy(statusbar_msg, msg, scr_cols - 3);
+
+	mvwaddstr(statusbar_win, 0, 1, statusbar_msg);	
 	return;
 }
 
@@ -569,7 +612,7 @@ rebuild_all(void)
 }
 
 static int
-open_pdf(void)
+open_pdf(char *program)
 {
 	if (lselnode->is_dir)
 		return 1;
@@ -581,9 +624,9 @@ open_pdf(void)
 		return -1;
 
 	else if (pid == 0) {
-		char *mupdf_args[] = {"mupdf", lselnode->path, NULL};
-		if (execvp("mupdf", mupdf_args) == -1) {
-			perror("Error en la función open_pdf. No se pudo abrir MuPDF\n");
+		char *exec_args[] = {program, lselnode->path, NULL};
+		if (execvp(program, exec_args) == -1) {
+			perror("Error en la función open_pdf\n");
 		}
 	}
 	return 0;
@@ -628,7 +671,7 @@ goto_bottom(void)
 }
 
 static void
-init_tui(void)
+init_tui(Node *starting_node)
 {
 	/* Inicio de curses */
 	initscr();
@@ -653,8 +696,8 @@ init_tui(void)
 	build_leftwin();
 	build_rightwin();
   
-	lcurrnode = root_node;
-	lselnode = &root_node->childs[0];
+	lcurrnode = starting_node;
+	lselnode = &starting_node->childs[0];
 
 	print_text_windows();
 	return;

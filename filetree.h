@@ -6,8 +6,8 @@
 #define NAME_MAX 255		/* Caracteres en un filename. Igual a linux/limits.h */
 #define PATH_MAX 4096           /* Caracteres en un path. Igual a linux/limits.h */
 
-typedef struct tnode Node;
-struct tnode {
+typedef struct Node Node;
+struct Node {
   char name[NAME_MAX];
   char path[PATH_MAX];
   Node *parent;
@@ -24,5 +24,7 @@ Node 	*build_root_node(char *root_name, char *root_path);
 int 	build_tree(Node *root_node);
 void 	free_tree(Node *node);
 Node 	*search_node(char *keyword, Node *root_node);
+
+Node 	*find_in_tree(char *search_keyword, Node *root_node);
 
 #endif

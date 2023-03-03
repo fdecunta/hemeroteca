@@ -6,7 +6,7 @@ FLAGS = -Wall -g
 INCLUDES = -lncurses
 
 
-hemeroteca: main.c filetree.o 
+hemeroteca: main.c filetree.o hemeroteca.h config.h
 	$(CC) $(FLAGS) main.c filetree.c -o hemeroteca $(INCLUDES)
 
 filetree.o: filetree.c filetree.h

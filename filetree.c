@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -20,7 +21,7 @@ build_root_node(char *root_name, char *root_path)
 		return NULL;
   
 	Node *root_node;
-	root_node = (Node *) calloc(1, sizeof(Node));
+	root_node = (Node *) malloc(1 * sizeof(Node));
 	/* root_node = (Node *) malloc(sizeof(Node)); */
 	if (root_node == NULL)
 		return NULL;
@@ -180,4 +181,101 @@ build_node(struct dirent *file, Node *parent_node, Node *node)
 	node->nchilds = 0;
 
 	return 0;
+}
+
+static int 
+build_results_node(Node *results_node, Node *root_node, char *search_keyword)
+{
+	init_charray(results_node->name, NAME_MAX);  
+	init_charray(results_node->path, PATH_MAX);  
+
+	snprintf(results_node->name, NAME_MAX-1, "Resultados para '%s'", search_keyword);
+	results_node->name[NAME_MAX] = '\0';
+
+	strncpy(results_node->path, "No-path", PATH_MAX-1);
+
+	results_node->parent = root_node;
+	results_node->index_sel = 0;
+	results_node->ncurs_pos = 0;
+	results_node->ntop_slice = 0;
+	results_node->is_dir = true;
+	results_node->childs = NULL;
+	results_node->nchilds = 0;
+
+	return 0;
+}
+
+
+
+
+Node *
+compare_with_keyword(Node target_node, const char *search_keyword)
+{
+	Node *p;
+	int i;
+	char *lower_node_name;
+
+	p = NULL;
+	lower_node_name = strdup(target_node.name);
+	for (i=0; lower_node_name[i] != '\0'; i++) {
+		lower_node_name[i] = tolower(lower_node_name[i]);
+	}
+	
+	if ((strstr(lower_node_name, search_keyword)) != NULL) {
+		p = &target_node;
+	}
+
+	free(lower_node_name);
+	return p;
+}
+
+
+static int 
+add_node_to_results(Node *results_node, Node *node)
+{
+	Node *new_result;
+	int n;
+	
+	results_node->nchilds += 1;
+	n = results_node->nchilds;
+
+	results_node->childs = (Node *) realloc (results_node->childs, n * sizeof(Node));
+	new_result = &results_node->childs[n - 1];
+
+	*new_result = *node;
+	new_result->parent = results_node; 
+	return 0;
+}
+
+
+int
+recursive_tree_search(Node *results_node, Node *root_node, char *search_keyword)
+{
+	Node *p;
+	int i;
+	
+
+	for (i=0; i < root_node->nchilds ; i++)  {
+		if ((p = compare_with_keyword(root_node->childs[i], search_keyword)) != NULL)
+
+			add_node_to_results(results_node, p);
+
+		if (root_node->childs[i].is_dir) {
+			recursive_tree_search(results_node, &root_node->childs[i], search_keyword);
+		}
+	}
+	return 0;
+}
+
+
+Node *
+find_in_tree(char *search_keyword, Node *root_node)
+{
+	Node *results_node;
+
+	results_node = (Node *) malloc (sizeof(Node));
+	build_results_node(results_node, root_node, search_keyword);
+	recursive_tree_search(results_node, root_node, search_keyword);
+
+	return results_node;
 }

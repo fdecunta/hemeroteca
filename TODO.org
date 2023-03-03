@@ -1,9 +1,8 @@
-* TODO Sacar funciones auxiliares de main y mandarlas a algun header y .c
-* TODO Arreglar el main. Primero parsing, despues que ejecute lo que sea necesario.
+* TODO Al usar Search y que no haya resultados, que solo de error.
 
 * TODO Agregar enum con errores 
 
-* TODO Agregar SEARCH
+
 
 * TODO Opcion de mostar archivos .srt. Que por default no los incluya en el tree
 

@@ -3,6 +3,7 @@
 
 #define PROGRAM_NAME "Hemeroteca"
 
-#define HEMEROTECA_PATH "/home/fd/Papers"
+/* #define HEMEROTECA_PATH "/home/fd-lenovo/Papers" */
+#define HEMEROTECA_PATH "/home/fd-lenovo/Filmoteca"
 
 #endif
