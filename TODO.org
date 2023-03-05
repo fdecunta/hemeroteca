@@ -1,4 +1,6 @@
 * TODO Al usar Search y que no haya resultados, que solo de error.
+* TODO Reformular la estructura de datos. En vez de usar 
+
 
 * TODO Agregar enum con errores 
 

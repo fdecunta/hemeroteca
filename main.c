@@ -447,13 +447,13 @@ print_textwin(TextWin WIN, Node *node)
 		else
 			relative_number = abs(line-1 - WIN.curs_pos);
 
-		buffer = truncate_filename(node->childs[i++].name, (WIN.frame.cols - rnum_len - 1) );
+		buffer = truncate_filename(node->childs[i++]->name, (WIN.frame.cols - rnum_len - 1) );
 
 		/* Highlight si esta bajo el cursor */
 		if (WIN.is_active == true && line-1 == WIN.curs_pos) 
 			print_highlight(WIN, buffer, line);
 		/* Bold si es dir */
-		else if (node->childs[i-1].is_dir == true) {
+		else if (node->childs[i-1]->is_dir == true) {
 			print_relative_number(WIN, relative_number, line);
 			print_dir(WIN, buffer, line);
 		}
@@ -490,7 +490,7 @@ mv_curs_down(void)
 		}
 
 		lcurrnode->index_sel++;
-		lselnode = &lcurrnode->childs[lcurrnode->index_sel];
+		lselnode = lcurrnode->childs[lcurrnode->index_sel];
 		print_text_windows();
 	}
 	return;
@@ -507,7 +507,7 @@ mv_curs_up(void)
 			LeftWin.curs_pos--;      
     
 		lcurrnode->index_sel--;
-		lselnode = &lcurrnode->childs[lcurrnode->index_sel];
+		lselnode = lcurrnode->childs[lcurrnode->index_sel];
 		print_text_windows();
 	}
 	return;
@@ -521,7 +521,7 @@ open_node(void)
 		/* Guardo estado del nodo que abro */
 		lcurrnode->ncurs_pos = LeftWin.curs_pos;
 		lcurrnode = lselnode;
-		lselnode = &lselnode->childs[0];
+		lselnode = lselnode->childs[0];
 		lcurrnode->index_sel = 0;
 		LeftWin.curs_pos = 0;
 		print_text_windows();
@@ -542,7 +542,7 @@ close_node(void)
 		/* Paso al nodo parent */
 		lcurrnode = lcurrnode->parent;
 		LeftWin.curs_pos = lcurrnode->ncurs_pos;
-		lselnode = &lcurrnode->childs[lcurrnode->index_sel];
+		lselnode = lcurrnode->childs[lcurrnode->index_sel];
 
 		print_text_windows();
 	}
@@ -639,7 +639,7 @@ goto_top(void)
 	if (lcurrnode->nchilds == 0)
 		return;  
 
-	lselnode = &lcurrnode->childs[0];
+	lselnode = lcurrnode->childs[0];
 	lcurrnode->index_sel = 0;
 	LeftWin.curs_pos = 0;
 	lcurrnode->ntop_slice = 0;
@@ -656,7 +656,7 @@ goto_bottom(void)
 
 	/* Busca ultimo child */
 	int i = lcurrnode->nchilds - 1;
-	lselnode = &lcurrnode->childs[i];
+	lselnode = lcurrnode->childs[i];
 	lcurrnode->index_sel = i;
 
 	if (lcurrnode->index_sel < LeftWin.max_curs_pos)
@@ -697,7 +697,7 @@ init_tui(Node *starting_node)
 	build_rightwin();
   
 	lcurrnode = starting_node;
-	lselnode = &starting_node->childs[0];
+	lselnode = starting_node->childs[0];
 
 	print_text_windows();
 	return;

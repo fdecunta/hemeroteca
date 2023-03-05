@@ -11,7 +11,7 @@ struct Node {
   char name[NAME_MAX];
   char path[PATH_MAX];
   Node *parent;
-  Node *childs;
+  Node **childs;
   bool is_dir;		
   bool is_last_watched;	        /* Si es el ultimo episodio visto  */
   unsigned int ncurs_pos;	/* Posicion del cursor al abrir ese nodo en curses */
@@ -24,7 +24,6 @@ Node 	*build_root_node(char *root_name, char *root_path);
 int 	build_tree(Node *root_node);
 void 	free_tree(Node *node);
 Node 	*search_node(char *keyword, Node *root_node);
-
 Node 	*find_in_tree(char *search_keyword, Node *root_node);
 
 #endif

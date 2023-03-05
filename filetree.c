@@ -8,11 +8,15 @@
 
 #include "filetree.h"
 
+static Node 	*build_node(struct dirent *file, Node *parent_node);
+static Node	*compare_with_keyword(Node *target_node, const char *search_keyword);
+static int 	join_path(char *dest, char *dirname, char *filename); 
 static int 	not_hidden(const struct dirent *dir_entry);
 static void 	init_charray(char *arr, int len);
 static int 	is_dir(char *path);
-static int 	join_path(char *dest, char *dirname, char *filename); 
-static int 	build_node(struct dirent *file, Node *parent_node, Node *node);
+static int	recursive_tree_search(Node *results_node, Node *root_node, char *search_keyword);
+
+
 
 Node *
 build_root_node(char *root_name, char *root_path)
@@ -22,7 +26,7 @@ build_root_node(char *root_name, char *root_path)
   
 	Node *root_node;
 	root_node = (Node *) malloc(1 * sizeof(Node));
-	/* root_node = (Node *) malloc(sizeof(Node)); */
+
 	if (root_node == NULL)
 		return NULL;
 
@@ -51,25 +55,21 @@ build_tree(Node *root_node)
 		return -1;
 	}
 
-	root_node->childs = (Node *) calloc (n, sizeof(Node));
+	root_node->childs = (Node **) calloc (n, sizeof(Node *));
 	if (root_node->childs == NULL)
 		return -1;
 
 	/* Loop sobre cada archivo del directorio */
 	for (i=0; i<n; i++) {
-		if ((build_node(namelist[i], root_node, &root_node->childs[i])) == -1) {
-			while (n--)
-				free(namelist[n]);
-			free(namelist);
+		if ((root_node->childs[i] = build_node(namelist[i], root_node)) == NULL)
 			return -1;
-		}
 
 		if (namelist[i]->d_type == DT_DIR) {
-			root_node->childs[i].is_dir = true;
-			build_tree(&root_node->childs[i]);
+			root_node->childs[i]->is_dir = true;
+			build_tree(root_node->childs[i]);
 		}
 		else {
-			root_node->childs[i].is_dir = false;
+			root_node->childs[i]->is_dir = false;
 		}
 	}
 	root_node->nchilds = n;
@@ -83,8 +83,8 @@ void
 free_tree(Node *node)
 {
 	for (int i=0; i<node->nchilds; i++) {
-		if (node->childs[i].is_dir)
-			free_tree(&node->childs[i]);
+		if (node->childs[i]->is_dir)
+			free_tree(node->childs[i]);
 	}
 	free(node->childs);
 	return;
@@ -95,11 +95,11 @@ search_node(char *keyword, Node *root_node)
 {
 	Node *finding = NULL;
 	int i;
-	for (i=0; i<root_node->nchilds && finding == NULL; i++) {
-		if (strcmp(keyword, root_node->childs[i].name) == 0)
-			finding = &root_node->childs[i];
-		else if (root_node->childs[i].is_dir == true)
-			finding = search_node(keyword, &root_node->childs[i]);
+	for (i=0; i < root_node->nchilds && finding == NULL; i++) {
+		if (strcmp(keyword, root_node->childs[i]->name) == 0)
+			finding = root_node->childs[i];
+		else if (root_node->childs[i]->is_dir == true)
+			finding = search_node(keyword, root_node->childs[i]);
 	}
 	return finding;
 }
@@ -158,29 +158,32 @@ join_path(char *dest, char *dirname, char *filename)
 	return pathlen;  
 }
 
-static int 
-build_node(struct dirent *file, Node *parent_node, Node *node)
+static Node *
+build_node(struct dirent *file, Node *parent_node)
 {
-	if (parent_node == NULL || node == NULL || file == NULL)
-		return -1;
+	if (parent_node == NULL || file == NULL)
+		return NULL;
 
-	init_charray(node->name, NAME_MAX);  
-	init_charray(node->path, PATH_MAX);  
+	Node *new_node;
+	new_node = (Node *) malloc (sizeof(Node));
 
-	strncpy(node->name, file->d_name, NAME_MAX-1);
-	node->name[NAME_MAX] = '\0';
+	init_charray(new_node->name, NAME_MAX);  
+	init_charray(new_node->path, PATH_MAX);  
 
-	join_path(node->path, parent_node->path, file->d_name);
+	strncpy(new_node->name, file->d_name, NAME_MAX-1);
+	new_node->name[NAME_MAX] = '\0';
 
-	node->parent = parent_node;
-	node->index_sel = 0;
-	node->ncurs_pos = 0;
-	node->ntop_slice = 0;
-	node->is_dir = false;
-	node->childs = NULL;
-	node->nchilds = 0;
+	join_path(new_node->path, parent_node->path, file->d_name);
 
-	return 0;
+	new_node->parent = parent_node;
+	new_node->index_sel = 0;
+	new_node->ncurs_pos = 0;
+	new_node->ntop_slice = 0;
+	new_node->is_dir = false;
+	new_node->childs = NULL;
+	new_node->nchilds = 0;
+
+	return new_node;
 }
 
 static int 
@@ -207,22 +210,24 @@ build_results_node(Node *results_node, Node *root_node, char *search_keyword)
 
 
 
-
-Node *
-compare_with_keyword(Node target_node, const char *search_keyword)
+/* Busca si SEARCH_KEYWORD esta en el nombre del TARGET_NODE
+  Si esta, devuelve un puntero a TARGET_NODE
+  Si no esta, devuelve NULL */
+static Node *
+compare_with_keyword(Node *target_node, const char *search_keyword)
 {
 	Node *p;
 	int i;
 	char *lower_node_name;
 
 	p = NULL;
-	lower_node_name = strdup(target_node.name);
+	lower_node_name = strdup(target_node->name);
 	for (i=0; lower_node_name[i] != '\0'; i++) {
 		lower_node_name[i] = tolower(lower_node_name[i]);
 	}
 	
 	if ((strstr(lower_node_name, search_keyword)) != NULL) {
-		p = &target_node;
+		p = target_node;
 	}
 
 	free(lower_node_name);
@@ -233,35 +238,32 @@ compare_with_keyword(Node target_node, const char *search_keyword)
 static int 
 add_node_to_results(Node *results_node, Node *node)
 {
-	Node *new_result;
 	int n;
 	
 	results_node->nchilds += 1;
 	n = results_node->nchilds;
 
-	results_node->childs = (Node *) realloc (results_node->childs, n * sizeof(Node));
-	new_result = &results_node->childs[n - 1];
+	results_node->childs = (Node **) realloc (results_node->childs, n * sizeof(Node*));
 
-	*new_result = *node;
-	new_result->parent = results_node; 
+	results_node->childs[n - 1] = node;
+
 	return 0;
 }
 
 
-int
+static int
 recursive_tree_search(Node *results_node, Node *root_node, char *search_keyword)
 {
 	Node *p;
 	int i;
 	
-
 	for (i=0; i < root_node->nchilds ; i++)  {
 		if ((p = compare_with_keyword(root_node->childs[i], search_keyword)) != NULL)
 
 			add_node_to_results(results_node, p);
 
-		if (root_node->childs[i].is_dir) {
-			recursive_tree_search(results_node, &root_node->childs[i], search_keyword);
+		if (root_node->childs[i]->is_dir) {
+			recursive_tree_search(results_node, root_node->childs[i], search_keyword);
 		}
 	}
 	return 0;
