@@ -32,13 +32,17 @@ build_root_node(char *root_name, char *root_path)
 
 	init_charray(root_node->name, NAME_MAX);
 	init_charray(root_node->path, PATH_MAX);  
-
 	strncpy(root_node->name, root_name, NAME_MAX-1);
 	strncpy(root_node->path, root_path, PATH_MAX-1);
+
 	root_node->parent = NULL;
+	root_node->childs = NULL;
 	root_node->is_dir = true;
 	root_node->is_last_watched = false;
-	root_node->childs = NULL;
+
+	root_node->ncurs_pos = 0;
+	root_node->index_sel = 0;
+	root_node->ntop_slice = 0;
 	root_node->nchilds = 0;
 
 	return root_node;
@@ -82,9 +86,10 @@ build_tree(Node *root_node)
 void
 free_tree(Node *node)
 {
-	for (int i=0; i<node->nchilds; i++) {
+	for (int i=0; i < node->nchilds; i++) {
 		if (node->childs[i]->is_dir)
 			free_tree(node->childs[i]);
+		free(node->childs[i]);
 	}
 	free(node->childs);
 	return;
@@ -176,11 +181,12 @@ build_node(struct dirent *file, Node *parent_node)
 	join_path(new_node->path, parent_node->path, file->d_name);
 
 	new_node->parent = parent_node;
-	new_node->index_sel = 0;
-	new_node->ncurs_pos = 0;
-	new_node->ntop_slice = 0;
-	new_node->is_dir = false;
 	new_node->childs = NULL;
+	new_node->is_dir = false;
+	new_node->is_last_watched = false;
+	new_node->ncurs_pos = 0;
+	new_node->index_sel = 0;
+	new_node->ntop_slice = 0;
 	new_node->nchilds = 0;
 
 	return new_node;
@@ -198,11 +204,12 @@ build_results_node(Node *results_node, Node *root_node, char *search_keyword)
 	strncpy(results_node->path, "No-path", PATH_MAX-1);
 
 	results_node->parent = root_node;
-	results_node->index_sel = 0;
-	results_node->ncurs_pos = 0;
-	results_node->ntop_slice = 0;
-	results_node->is_dir = true;
 	results_node->childs = NULL;
+	results_node->is_dir = true;
+	results_node->is_last_watched = false;
+	results_node->ncurs_pos = 0;
+	results_node->index_sel = 0;
+	results_node->ntop_slice = 0;
 	results_node->nchilds = 0;
 
 	return 0;

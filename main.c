@@ -438,6 +438,8 @@ print_textwin(TextWin WIN, Node *node)
 	}
 
 	i = node->ntop_slice;
+	line = 1;
+	relative_number = 0;
 	rnum_len = 4;		/* Length del relative number. Ejemplo "  0 " */
 
 	for (line=1; line < WIN.max_curs_pos + 2 && line < node->nchilds + 1; line++) { /* El +2 es empirico, lo encontre con prueba y error */
