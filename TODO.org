@@ -1,10 +1,1 @@
-* TODO Al usar Search y que no haya resultados, que solo de error.
-* TODO Reformular la estructura de datos. En vez de usar 
-
-
 * TODO Agregar enum con errores 
-
-
-
-* TODO Opcion de mostar archivos .srt. Que por default no los incluya en el tree
-

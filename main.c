@@ -145,15 +145,19 @@ start_hemeroteca_tui(char *dir_to_use) {
 		return -1;
 	}
 
-
-
+	tuistatus = CONT;
 	if (sflag == 1) {
 		search_results_node = find_in_tree(search_keyword, root_node);
-		init_tui(search_results_node);
+		if (search_results_node->nchilds == 0) {
+			fprintf(stderr, "No se encontraron resultados para: %s", search_keyword);
+			free_before_die("\n");
+			return -1;
+		} else
+			init_tui(search_results_node);
 	} else
 		init_tui(root_node);
 
-	tuistatus = CONT;
+
 	while (tuistatus == CONT) 
 		{
 			refresh_wins();
