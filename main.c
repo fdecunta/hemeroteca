@@ -67,7 +67,7 @@ static void	 print_statusbar(char *msg);
 static void	 print_textwin(TextWin WIN, Node *node);
 static void	 print_text_windows(void);
 static void	 print_title(void);
-static void	 rebuild_all(void);
+static void	 rebuild_all(int);
 static void	 refresh_wins(void);
 static void	 relative_num_move(char first_num);
 static void	 relnum_mv_down(int num);
@@ -212,7 +212,7 @@ start_hemeroteca_tui(char *dir_to_use) {
 				break;
 
 			case KEY_RESIZE:
-				rebuild_all();
+				rebuild_all(LeftWin.curs_pos);
 				break;
 	
 			case 'q':
@@ -453,7 +453,8 @@ print_textwin(TextWin WIN, Node *node)
 		else
 			relative_number = abs(line-1 - WIN.curs_pos);
 
-		buffer = truncate_filename(node->childs[i++]->name, (WIN.frame.cols - rnum_len - 1) );
+		buffer = truncate_filename(node->childs[i]->name, (WIN.frame.cols - rnum_len - 1) );
+		i++;
 
 		/* Highlight si esta bajo el cursor */
 		if (WIN.is_active == true && line-1 == WIN.curs_pos) 
@@ -603,7 +604,7 @@ relative_num_move(char first_num)
 }
 
 static void
-rebuild_all(void)
+rebuild_all(int last_curs_pos)
 {
 	getmaxyx(stdscr, scr_rows, scr_cols);
 	clear();
@@ -614,6 +615,9 @@ rebuild_all(void)
 	print_statusbar("Soy una statusbar");
 	build_leftwin();
 	build_rightwin();
+
+	LeftWin.curs_pos = last_curs_pos;
+
 	print_text_windows();
 }
 
@@ -631,10 +635,10 @@ open_pdf(char *program)
 
 	else if (pid == 0) {
 		char *exec_args[] = {program, lselnode->path, NULL};
-		if (execvp(program, exec_args) == -1) {
+		if (execvp(program, exec_args) == -1) 
 			perror("Error en la función open_pdf\n");
-		}
-	}
+	} else
+		;
 	return 0;
 }
 
