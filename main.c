@@ -80,8 +80,6 @@ static void 	 usage(void);
 int
 main(int argc, char *argv[])
 {
-
-
 	int opt, rval;
 	char *dir_to_use;
 
