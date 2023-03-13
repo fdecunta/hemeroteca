@@ -282,6 +282,10 @@ find_in_tree(char *search_keyword, Node *root_node)
 {
 	Node *results_node;
 
+	for (int i=0; search_keyword[i] != '\0'; i++) {
+		search_keyword[i] = tolower(search_keyword[i]);
+	}	
+
 	results_node = (Node *) malloc (sizeof(Node));
 	build_results_node(results_node, root_node, search_keyword);
 	recursive_tree_search(results_node, root_node, search_keyword);
