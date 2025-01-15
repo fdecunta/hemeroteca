@@ -1,1 +1,0 @@
-* TODO Agregar enum con errores 

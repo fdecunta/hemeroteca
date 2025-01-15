@@ -11,14 +11,14 @@ I don't use this anymore, but was useful for a good amount of time. And was a lo
 ** Installation
 
 #+BEGIN_SRC shell
-git clone https://github.com/fdecunta/C-hemeroteca.git
-cd C-hemeroteca
+git clone https://github.com/fdecunta/hemeroteca.git
+cd hemeroteca
 sudo make install
 #+END_SRC
 
 To remove the program:
 
 #+BEGIN_SRC shell
-cd C-hemeroteca
+cd hemeroteca
 sudo make uninstall
 #+END_SRC
