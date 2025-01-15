@@ -39,7 +39,7 @@ Move using arrows or Vim keys. Press enter to open a file MuPDF, Ctrl+o to open 
 
 #+CAPTION: A quick search
 #+NAME: fig:SEARCH
-#+ATTR_HTML: :width 300px
+#+ATTR_HTML: :width 200px
 [[./hemeroteca.gif]]
 
 
