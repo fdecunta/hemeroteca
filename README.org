@@ -27,9 +27,10 @@ sudo make uninstall
 
 ** How to use?
 
-Modo de uso:
 hemeroteca [-d DIR] [-s KEYWORD]
+
  -d DIR	        Abre hemeroteca en [DIR]
+
  -s KEYWORD	Busca archivos con KEYWORD en el nombre
 
 
