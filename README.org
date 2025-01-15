@@ -1,14 +1,12 @@
 #+title: Hemeroteca
 
-An awfull (but fast) program to find and open PDF papers from the terminal.
+An awful (but fast) program to find and open PDF papers from the terminal.
 
-I was looking for a fast way to find papers inside a messy "Papers" directory in my computer. Also I was learning C, so trying to write this seems fun.
+I wanted a quick way to locate papers in a chaotic 'Papers' directory on my computer. Since I was also learning C, writing this seemed like a fun challenge.
 
-I used this program for about a year, but then I switched to dmenu because it's faster and looks better. 
+I used this program for about a year before switching to dmenu, which is faster and has a cleaner look.
 
-I don't use this anymore, but was useful for a good amount of time. And was a lot of fun!
-
-This project was 
+The design is really bad, and I know the code might have plenty of issues, but it was a fun and practical solution for a while.
 
 
 ** Installation
