@@ -1,7 +1,0 @@
-1. Instalar dependencias:
-
-ncurses, mupdf, okular
-
-2. Entrar a config.h y modificar "HEMEROTECA_PATH"
-
-3. Correr "sudo make install"

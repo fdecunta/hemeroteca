@@ -610,7 +610,7 @@ rebuild_all(int last_curs_pos)
 	build_title();
 	print_title();
 	build_statusbar();
-	print_statusbar("Soy una statusbar");
+	print_statusbar("");
 	build_leftwin();
 	build_rightwin();
 
@@ -690,8 +690,7 @@ init_tui(Node *starting_node)
 	curs_set(0);
 
 	start_color();
-	init_pair(1, COLOR_BLUE, COLOR_BLACK);
-	init_pair(2, COLOR_BLACK, COLOR_BLUE);
+	init_pair(1, COLOR_BLUE, COLOR_BLACK); init_pair(2, COLOR_BLACK, COLOR_BLUE);
 
 	/* Consigo FILAS y COLUMNAs */
 	getmaxyx(stdscr, scr_rows, scr_cols);
@@ -700,7 +699,7 @@ init_tui(Node *starting_node)
 	build_title();
 	print_title();
 	build_statusbar();
-	print_statusbar("Soy una statusbar");
+	print_statusbar("");
 	build_leftwin();
 	build_rightwin();
   
@@ -726,7 +725,7 @@ static void
 usage(void)
 {
   	fprintf(stderr, "Modo de uso:\n");
-	fprintf(stderr, "Hemeroteca [-d dir] [-s keyword]\n");
+	fprintf(stderr, "hemeroteca [-d dir] [-s keyword]\n");
 	fprintf(stderr, " -d DIR	Abre hemeroteca en [dir]\n");
 	fprintf(stderr, " -s KEYWORD	Busca archios con KEYWORD en el nombre\n");
 }
