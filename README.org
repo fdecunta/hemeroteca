@@ -4,7 +4,7 @@ An awful (but fast) program to find and open PDF papers from the terminal.
 
 I wanted a quick way to locate papers in a chaotic 'Papers' directory on my computer. Since I was also learning C, writing this seemed like a fun challenge.
 
-I used this program for about a year before switching to dmenu, which is faster and has a cleaner look.
+I used this program for about a year before switching to dmenu, which is awesome if you use I3.
 
 The design is really bad, and I know the code might have plenty of issues, but it was a fun and practical solution for a while.
 
